@@ -6,10 +6,6 @@ __all__ = (
 from django.db import transaction
 from .models import Message, MessageArchive, Inbox
 
-USE_DATA = False
-if 'data' in Message._meta.get_all_field_names():
-    USE_DATA = True
-
 
 def add_message_for(users, level, message, extra_tags='', fail_silently=False, **kwargs):
     """
@@ -30,7 +26,7 @@ def add_message_for(users, level, message, extra_tags='', fail_silently=False, *
     #
     # We have the JSONField installed and available
     #
-    if USE_DATA is True:
+    if 'data' in Message._meta.get_all_field_names():
         # we have it *yay* so add our kwargs
         message_fields.update({
             'data': kwargs
