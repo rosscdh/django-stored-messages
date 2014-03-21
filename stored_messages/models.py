@@ -8,6 +8,16 @@ from django.utils.translation import ugettext_lazy as _
 from .compat import AUTH_USER_MODEL
 from .settings import stored_messages_settings
 
+try:
+    from uuidfield import UUIDField
+except ImportError:
+    UUIDField = None
+
+try:
+    from jsonfield import JSONField
+except ImportError:
+    JSONField = None
+
 
 @python_2_unicode_compatible
 class Message(models.Model):
@@ -18,6 +28,10 @@ class Message(models.Model):
     message = models.TextField()
     level = models.IntegerField()
     tags = models.TextField()
+    if UUIDField is not None:
+        slug = UUIDField()
+    if JSONField is not None:
+        data = JSONField()
     date = models.DateTimeField(default=timezone.now)
 
     def __str__(self):

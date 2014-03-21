@@ -1,13 +1,17 @@
-
 __all__ = (
     'add_message_for', 'broadcast_message',
     'mark_read', 'mark_all_read',
 )
 
+from django.db import transaction
 from .models import Message, MessageArchive, Inbox
 
+USE_DATA = False
+if 'data' in Message._meta.get_all_field_names():
+    USE_DATA = True
 
-def add_message_for(users, level, message, extra_tags='', fail_silently=False):
+
+def add_message_for(users, level, message, extra_tags='', fail_silently=False, **kwargs):
     """
     Send a message to a list of users without passing through `django.contrib.messages`
 
@@ -17,10 +21,27 @@ def add_message_for(users, level, message, extra_tags='', fail_silently=False):
     :param extra_tags: like the Django api, a string containing extra tags for the message
     :param fail_silently: not used at the moment
     """
-    m = Message.objects.create(message=message, level=level, tags=extra_tags)
-    for u in users:
-        MessageArchive.objects.create(user=u, message=m)
-        Inbox.objects.create(user=u, message=m)
+    # set up the base fields used to create the message
+    message_fields = {
+        'message': message,
+        'level': level,
+        'tags': extra_tags
+    }
+    #
+    # We have the JSONField installed and available
+    #
+    if USE_DATA is True:
+        # we have it *yay* so add our kwargs
+        message_fields.update({
+            'data': kwargs
+        })
+
+    with transaction.atomic():
+        m = Message.objects.create(**message_fields)
+
+        for u in users:
+            MessageArchive.objects.create(user=u, message=m)
+            Inbox.objects.create(user=u, message=m)
 
 
 def broadcast_message(level, message, extra_tags='', fail_silently=False):
@@ -40,7 +61,6 @@ def mark_read(user, message):
     :param user: user instance for the recipient
     :param message: a Message instance to mark as read
     """
-    from .models import Inbox
     try:
         inbox_m = Inbox.objects.filter(user=user, message=message).get()
         inbox_m.delete()
@@ -55,5 +75,5 @@ def mark_all_read(user):
 
     :param user: user instance for the recipient
     """
-    from .models import Inbox
-    Inbox.objects.filter(user=user).delete()
+    with transaction.atomic():
+        Inbox.objects.filter(user=user).delete()
