@@ -29,9 +29,9 @@ class Message(models.Model):
     level = models.IntegerField()
     tags = models.TextField()
     if UUIDField is not None:
-        slug = UUIDField()
+        slug = UUIDField(hyphenate=False, blank=True, null=True, db_index=True)
     if JSONField is not None:
-        data = JSONField()
+        data = JSONField(blank=True, null=True, default={})
     date = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
